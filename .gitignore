@@ -1,0 +1,11 @@
+# CLion
+.idea/
+
+# CMake
+cmake-build-*/
+
+# MOT data
+data
+
+# Output data
+output
