@@ -41,11 +41,12 @@ std::size_t overall_frames;
 int main(int argc, char* argv[])
 {
   // Data sets with static cameras only.
-  std::vector<std::string> sequences = {"PETS09-S2L1", "TUD-Campus",
-                                        "TUD-Stadtmitte",
-                                        "KITTI-17", "ADL-Rundle-6",
-                                        "Venice-2"};
+//  std::vector<std::string> sequences = {"PETS09-S2L1", "TUD-Campus",
+//                                        "TUD-Stadtmitte",
+//                                        "KITTI-17", "ADL-Rundle-6",
+//                                        "Venice-2"};
 
+  std::vector<std::string> sequences = {"SHAN-1"};
   bool display{false};
   bool write_output{false};
   if (argc >= 2) {
@@ -126,7 +127,7 @@ void demoSort(const std::string& seqName, const bool& display, const bool& write
   }
 
   // Create instance of sort tracker.
-  const unsigned int max_age{1};
+  const unsigned int max_age{12};
   const int max_corners{50};
   const unsigned int n_init{3};
   const double iou_threshold{0.3};
@@ -170,7 +171,7 @@ void demoSort(const std::string& seqName, const bool& display, const bool& write
       struct DetectionsAndImg dets_and_img;
       dets_and_img.img = images.at(frame - 1);
 
-      // Even if there are no detections we have update the tracker.
+      // Even if there are no detections we have to update the tracker.
       tracks = of_sort_tracker.update(dets_and_img);
 
       auto t2 = std::chrono::high_resolution_clock::now();
@@ -265,7 +266,6 @@ readDetections(const std::string& seqName)
  * @param seqName String with the processed sequence name.
  * @return images List with images.
  */
-
 std::vector<cv::Mat>
 readImages(const std::string& seqName) {
   std::cout << "Reading images into RAM... " << std::flush;
