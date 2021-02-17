@@ -126,7 +126,7 @@ void demoSort(const std::string& seqName, const bool& display, const bool& write
   }
 
   // Create instance of sort tracker.
-  const unsigned int max_age{12};
+  const unsigned int max_age{1};
   const int max_corners{50};
   const unsigned int n_init{3};
   const double iou_threshold{0.3};
