@@ -41,12 +41,11 @@ std::size_t overall_frames;
 int main(int argc, char* argv[])
 {
   // Data sets with static cameras only.
-//  std::vector<std::string> sequences = {"PETS09-S2L1", "TUD-Campus",
-//                                        "TUD-Stadtmitte",
-//                                        "KITTI-17", "ADL-Rundle-6",
-//                                        "Venice-2"};
+  std::vector<std::string> sequences = {"ADL-Rundle-6", "KITTI-17",
+                                        "PETS09-S2L1", "TUD-Campus",
+                                        "TUD-Stadtmitte",
+                                        "Venice-2"};
 
-  std::vector<std::string> sequences = {"SHAN-1"};
   bool display{false};
   bool write_output{false};
   if (argc >= 2) {
