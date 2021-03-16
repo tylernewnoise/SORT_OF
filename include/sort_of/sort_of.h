@@ -1,6 +1,6 @@
 /**
  * SORT_OF: A Simple, Online and Realtime Tracker extended with Optical Flow.
- * This is base on the 2016 by Alex Bewley proposed tracking algorithm.
+ * This is based on the 2016 by Alex Bewley proposed tracking algorithm SORT.
  * See https://github.com/abewley/sort and
  * @inproceedings{sort2016,
  * author = {Bewley, Alex and Ge, Zongyuan and Ott, Lionel and Ramos, Fabio and Upcroft, Ben},
@@ -67,11 +67,11 @@ public:
    * Constructor.
    *
    * @param iou_threshold Minimum intersection over union threshold.
-   * @param max_age Maximum number of missed misses before track is deleted.
+   * @param max_age Maximum number of misses before a track is deleted.
    * @param max_corners Maximum number of feature points to be detected per
    *                    track.
    * @param n_init Number of consecutive detections before the track is
-   *        confirmed.
+   *               confirmed.
    */
   SORTOF(const double iou_threshold,
       const unsigned int max_age,
