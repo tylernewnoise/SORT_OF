@@ -13,7 +13,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include/sort_of)
 file(GLOB SOURCE_FILES src/*.cpp)
 
 if (CLANG_FORMAT_EXECUTABLE)
-    MESSAGE("GEIL")
     set(CLANG_FORMAT_ARGS "${CLANG_FORMAT_EXECUTABLE};-i;-style=Google")
     set(FILES_TO_FORMAT
             ${SOURCE_FILES}
@@ -21,6 +20,8 @@ if (CLANG_FORMAT_EXECUTABLE)
             )
     add_custom_target(${CMAKE_PROJECT_NAME}_format
             COMMAND ${CLANG_FORMAT_ARGS} ${FILES_TO_FORMAT})
+else ()
+    add_custom_target(${PROJECT_NAME}_format COMMAND "")
 endif()
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCE_FILES})
