@@ -2,7 +2,7 @@
 
 Extending SORT's Kalman filter measurement model to add a velocity component 
 derived from Optical Flow. This was part of my Bachelor's Thesis for Computer
-Science in collaboration the German Aerospace Center. Although not used for
+Science in collaboration with the German Aerospace Center. Although not used for
 pedestrian tracking, the method can be evaluated and used with the 
 [MOT](https://motchallenge.net) datasets.
 
@@ -80,12 +80,11 @@ Run
 ```
 $./SORT_OF -d
 ```
-inside the ``SORT_with_Optical_FLow`` directory to get a visualization with 
-neat bounding boxes. Add ``-o`` to write tracks in mot challenge format to 
-file. Omit the ``-d`` to run the tracker offline.  Add ``-o`` to write results
-to ``output/SequenceName.txt``.
-One can use [py-motmetrics](https://github.com/cheind/py-motmetrics) to 
-evaluate the results.
+inside the ``SORT_OF`` directory to get a visualization with neat bounding 
+boxes. Omit the ``-d`` to run the tracker offline. Add ``-o`` to write results
+to ``output/SequenceName.txt`` in mot challenge format. One can use 
+[py-motmetrics](https://github.com/cheind/py-motmetrics) to evaluate the 
+results.
 
 I tested and wrote this on AchLinux, for other operating system changes may
 have to be made.
@@ -93,12 +92,12 @@ have to be made.
 ### Usage
 
 Functionality is written in a single header file for simple usage in other 
-projects, just import the header with :
+projects, just import the header with:
 ```C++
 #import sort_of.h
 
 ```
-Detections and the and the corresponding image have to be passed as a 
+Detections and the corresponding image have to be passed as a 
 ``struct DetectionsAndImg{}`` which is defined as:
 ```c++
 struct DetectionsAndImg {
