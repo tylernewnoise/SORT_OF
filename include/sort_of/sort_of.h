@@ -82,7 +82,6 @@ public:
           id_{0},
           max_age_{max_age},
           n_init_{n_init},
-          precision_{10000},
           trackers_{std::unordered_map<std::size_t,
                     std::unique_ptr<FlowBoxTracker>>()}
   {
@@ -498,7 +497,7 @@ private:
   std::size_t id_;
   unsigned int max_age_;
   unsigned int n_init_;
-  const double precision_;
+  static constexpr double precision_ = 10000;
   std::unordered_map<std::size_t, std::unique_ptr<FlowBoxTracker>> trackers_;
   double iou_threshold_;
 
