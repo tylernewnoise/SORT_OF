@@ -1,3 +1,4 @@
+// clang-format off
 /**
  * SORT_OF: A Simple, Online and Realtime Tracker extended with Optical Flow.
  * This is based on the 2016 by Alex Bewley proposed tracking algorithm SORT.
@@ -26,18 +27,18 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+// clang-format on
 
 #ifndef SORT_OF_SORT_OF_H
 #define SORT_OF_SORT_OF_H
 
+#include <dlib/optimization/max_cost_assignment.h>
+
 #include <algorithm>
 #include <map>
-#include <vector>
-
-#include <dlib/optimization/max_cost_assignment.h>
 #include <opencv2/optflow/rlofflow.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <vector>
 
 #if !defined(NDEBUG)
 #include <string>
@@ -62,7 +63,7 @@ namespace sort_of {
  * the value.
  */
 class SORTOF {
-public:
+ public:
   /**
    * Constructor.
    *
@@ -73,18 +74,14 @@ public:
    * @param n_init Number of consecutive detections before the track is
    *               confirmed.
    */
-  SORTOF(const double iou_threshold,
-      const unsigned int max_age,
-      const int max_corners,
-          const unsigned int n_init)
-          :
-          frame_{0},
-          id_{0},
-          max_age_{max_age},
-          n_init_{n_init},
-          trackers_{std::unordered_map<std::size_t,
-                    std::unique_ptr<FlowBoxTracker>>()}
-  {
+  SORTOF(const double iou_threshold, const unsigned int max_age,
+         const int max_corners, const unsigned int n_init)
+      : frame_{0},
+        id_{0},
+        max_age_{max_age},
+        n_init_{n_init},
+        trackers_{std::unordered_map<std::size_t,
+                                     std::unique_ptr<FlowBoxTracker>>()} {
     iou_threshold_ = iou_threshold * precision_;
 
     fast_ = cv::FastFeatureDetector::create();
@@ -112,15 +109,14 @@ public:
   ~SORTOF() = default;
 
   /**
-  * Perform measurement update and track management.
-  *
-  * @param dets_and_img A struct DetectionsAndImg with a list of detections and
-  *                     a corresponding image at the current time step.
-  * @return The list with active tracks at the current time step.
-  */
+   * Perform measurement update and track management.
+   *
+   * @param dets_and_img A struct DetectionsAndImg with a list of detections and
+   *                     a corresponding image at the current time step.
+   * @return The list with active tracks at the current time step.
+   */
   [[nodiscard]] std::vector<struct Track> update(
-      const struct DetectionsAndImg& dets_and_img)
-  {
+      const struct DetectionsAndImg& dets_and_img) {
     ++frame_;
     // Init helper variables on first frame.
     if (frame_ == 1) {
@@ -130,8 +126,7 @@ public:
     }
 
     // Get predicted locations from existing trackers.
-    for (auto& track : trackers_)
-      track.second->predict();
+    for (auto& track : trackers_) track.second->predict();
 
     // Associate detections to active trackers.
     std::vector<std::size_t> unmatched_dets;
@@ -140,82 +135,77 @@ public:
     // Collect inactive trackers.
     std::vector<std::size_t> tracks_to_delete;
     for (auto& tracker : trackers_) {
-            if (((tracker.second->time_since_update > max_age_) &&
-            !tracker.second->got_bbox) ||
-            (tracker.second->time_since_update == 1 &&
-            tracker.second->hits < n_init_ && !tracker.second->got_bbox)) {
-              tracks_to_delete.emplace_back(tracker.first);
-            }
+      if (((tracker.second->time_since_update > max_age_) &&
+           !tracker.second->got_bbox) ||
+          (tracker.second->time_since_update == 1 &&
+           tracker.second->hits < n_init_ && !tracker.second->got_bbox)) {
+        tracks_to_delete.emplace_back(tracker.first);
+      }
     }
     // Delete inactive trackers.
-    for (const auto& trK_to_del : tracks_to_delete)
-      trackers_.erase(trK_to_del);
+    for (const auto& trK_to_del : tracks_to_delete) trackers_.erase(trK_to_del);
 
     tracks_to_delete.clear();
 
     cv::Mat frame_gray;
     cv::cvtColor(dets_and_img.img, frame_gray, cv::COLOR_BGR2GRAY);
-    std::vector<std::pair<std::size_t,
-      std::vector<cv::Point2f>>> ids_with_features;
+    std::vector<std::pair<std::size_t, std::vector<cv::Point2f>>>
+        ids_with_features;
     std::size_t n{0};
 
     // Calculate feature points for trackers.
-    for (const auto& tracker: trackers_) {
+    for (const auto& tracker : trackers_) {
       BBox bbox_candidate = tracker.second->get_state();
       if (!check_and_resize_state_bbox(bbox_candidate,
-          tracker.second->get_state())) {
+                                       tracker.second->get_state())) {
         // The resized box is too small to receive a matching detection,
         // meaning we can delete the track.
         tracks_to_delete.emplace_back(tracker.first);
         continue;
       }
-      std::vector<cv::Point2f> features {
-              calculate_feature_points(bbox_candidate, frame_gray)
-      };
+      std::vector<cv::Point2f> features{
+          calculate_feature_points(bbox_candidate, frame_gray)};
       ids_with_features.emplace_back(tracker.first, features);
       n += features.size();
     }
 
     // Delete trackers which moved outside the image space.
-    for (const auto& trK_to_del : tracks_to_delete)
-      trackers_.erase(trK_to_del);
+    for (const auto& trK_to_del : tracks_to_delete) trackers_.erase(trK_to_del);
 
     // Calculate velocities from optical flow for all tracks.
-    std::unordered_map<std::size_t,
-      std::vector<struct Velocity_>> trackid_with_velocity;
+    std::unordered_map<std::size_t, std::vector<struct Velocity_>>
+        trackid_with_velocity;
     if (!ids_with_features.empty())
       trackid_with_velocity =
           calculate_velocities_from_flow(frame_gray, n, ids_with_features);
 
     // Calculate best velocity for update from mahalanobis distance.
-    for (const auto & it : trackid_with_velocity)
+    for (const auto& it : trackid_with_velocity)
       trackers_.at(it.first)->calculate_velocity_for_update(it.second);
 
     // Update all trackers.
-    for (auto & tracker : trackers_)
-      tracker.second->update();
+    for (auto& tracker : trackers_) tracker.second->update();
 
     // Create and initialize new trackers for unmatched detections.
     for (std::size_t d : unmatched_dets)
-      trackers_.emplace(id_++,
-          std::make_unique<FlowBoxTracker>(dets_and_img.detections[d]));
+      trackers_.emplace(
+          id_++, std::make_unique<FlowBoxTracker>(dets_and_img.detections[d]));
 
 #if !defined(NDEBUG)
     std::cout << "trackers: " << std::endl;
     for (auto& tracker : trackers_)
       std::cout << "tracker " << tracker.first + 1 << " is active with "
-                << tracker.second->hits
-                << " hits and time_since_update "
+                << tracker.second->hits << " hits and time_since_update "
                 << tracker.second->time_since_update
-                << " with a bbox: " << tracker.second->get_state()
-                << std::endl;
+                << " with a bbox: " << tracker.second->get_state() << std::endl;
 #endif
 
     // Return active trackers.
     std::vector<struct Track> active_tracks;
     for (const auto& trk : trackers_) {
       if ((trk.second->time_since_update < max_age_) &&
-      (trk.second->hits >= n_init_ || frame_ <= n_init_)) {  // Start on 1st frame.
+          (trk.second->hits >= n_init_ ||
+           frame_ <= n_init_)) {  // Start on 1st frame.
         struct Track track;
         track.bbox = trk.second->get_state();
         track.id = trk.first + 1;  // +1 as MOT benchmark requires positive.
@@ -227,7 +217,8 @@ public:
     return active_tracks;
   }
 
-private:
+ private:
+  // clang-format off
   //! Measurement function if bbox and velocity is provided. Default.
   static const cv::Mat& H_() {
     static const cv::Mat H_ = (cv::Mat_<float>(6, 7) <<
@@ -263,8 +254,9 @@ private:
             0, 0, 0, 0, 0, 1, 0);
     return H_velocity_only;
   }
+  // clang-format on
 
-  struct Velocity_{
+  struct Velocity_ {
     float vx;
     float vy;
   };
@@ -276,7 +268,7 @@ private:
    * respective velocities.
    */
   class FlowBoxTracker {
-  public:
+   public:
     /**
      * Constructor.
      *
@@ -284,9 +276,8 @@ private:
      *                     format.
      */
     explicit FlowBoxTracker(const BBox& initial_bbox)
-            :hits{0},
-             time_since_update{0}
-    {
+        : hits{0}, time_since_update{0} {
+      // clang-format off
       // State transition function F.
       kf_.transitionMatrix = (cv::Mat_<float>(7, 7) <<
               1, 0, 0, 0, 1, 0, 0,
@@ -329,6 +320,7 @@ private:
               0, 0, 0, 0, 10000, 0, 0,
               0, 0, 0, 0, 0, 10000, 0,
               0, 0, 0, 0, 0, 0, 10000);
+      // clang-format on
 
       // State is modeled as [x, y, s, r, vx, vy, vs].
       kf_.statePost.at<float>(0, 0) = initial_bbox.x + initial_bbox.width / 2;
@@ -346,25 +338,24 @@ private:
     //! Mahalanobis distance.
     void calculate_velocity_for_update(
         const std::vector<struct Velocity_>& velocities) {
-
       // Create mean vector.
       cv::Mat mean(2, 1, CV_32FC1);
-      mean.at<float>(0,0) = kf_.statePre.at<float>(4,0);
-      mean.at<float>(1,0) = kf_.statePre.at<float>(5,0);
+      mean.at<float>(0, 0) = kf_.statePre.at<float>(4, 0);
+      mean.at<float>(1, 0) = kf_.statePre.at<float>(5, 0);
 
       // Create inverted covariance matrix.
       cv::Mat S(2, 2, CV_32FC1);
-      S.at<float>(0,0) = kf_.errorCovPre.at<float>(4,4);
-      S.at<float>(0,1) = kf_.errorCovPre.at<float>(4,5);
-      S.at<float>(1,0) = kf_.errorCovPre.at<float>(5,4);
-      S.at<float>(1,1) = kf_.errorCovPre.at<float>(5,5);
-      cv::Mat S_inv {S.inv(cv::DECOMP_SVD)};
+      S.at<float>(0, 0) = kf_.errorCovPre.at<float>(4, 4);
+      S.at<float>(0, 1) = kf_.errorCovPre.at<float>(4, 5);
+      S.at<float>(1, 0) = kf_.errorCovPre.at<float>(5, 4);
+      S.at<float>(1, 1) = kf_.errorCovPre.at<float>(5, 5);
+      cv::Mat S_inv{S.inv(cv::DECOMP_SVD)};
 
       std::map<double, struct SORTOF::Velocity_> mahalanobisDist_and_velocity;
-      for (const auto& v: velocities) {
+      for (const auto& v : velocities) {
         cv::Mat x(2, 1, CV_32FC1);
-        x.at<float>(0,0) = v.vx;
-        x.at<float>(1,0) = v.vy;
+        x.at<float>(0, 0) = v.vx;
+        x.at<float>(1, 0) = v.vy;
 
         auto dist = cv::Mahalanobis(x, mean, S_inv);
         mahalanobisDist_and_velocity.emplace(dist, v);
@@ -376,14 +367,10 @@ private:
     }
 
     //! Return the current bounding box estimate.
-    [[nodiscard]] BBox get_state() const
-    {
-      return x_to_bbox(kf_.statePost);
-    }
+    [[nodiscard]] BBox get_state() const { return x_to_bbox(kf_.statePost); }
 
     //! Advances the state vector on the current time step.
-    void predict()
-    {
+    void predict() {
       // https://github.com/abewley/sort/issues/43
       if (kf_.statePost.at<float>(6, 0) + kf_.statePost.at<float>(2, 0) <= 0)
         kf_.statePost.at<float>(6, 0) *= 0.0;
@@ -398,19 +385,17 @@ private:
         if (got_bbox) {
           ++hits;
           time_since_update = 0;
-          auto z = bbox_to_z(bbox, velocity_to_update.vx, velocity_to_update.vy);
+          auto z =
+              bbox_to_z(bbox, velocity_to_update.vx, velocity_to_update.vy);
           kf_.correct(z);
-        }
-        else if (!got_bbox) {
+        } else if (!got_bbox) {
           kf_.measurementMatrix = H_velocity_only_();
-          cv::Mat z{(cv::Mat_<float>({
-                  0, 0, 0, 0, velocity_to_update.vx, velocity_to_update.vy
-          }))};
+          cv::Mat z{(cv::Mat_<float>(
+              {0, 0, 0, 0, velocity_to_update.vx, velocity_to_update.vy}))};
           kf_.correct(z);
           kf_.measurementMatrix = H_();
         }
-      }
-      else if (!found_flow && got_bbox) {
+      } else if (!found_flow && got_bbox) {
         kf_.measurementMatrix = H_bbox_only_();
         ++hits;
         time_since_update = 0;
@@ -428,17 +413,16 @@ private:
     std::size_t hits;
     std::size_t time_since_update;
 
-  private:
+   private:
     cv::KalmanFilter kf_ = cv::KalmanFilter(7, 6, 0);
-    struct SORTOF::Velocity_ velocity_to_update{};
+    struct SORTOF::Velocity_ velocity_to_update {};
 
     //! Convert bounding box in the form
     //! [x, y, width, height, velocity_x, velocity_y]
     //! and return z in the form
     //! [center_x,center_y, scale, ratio, velocity_x, velocity_y].
-    static cv::Mat bbox_to_z(
-        const BBox& bbox, const float& vx, const float& vy)
-    {
+    static cv::Mat bbox_to_z(const BBox& bbox, const float& vx,
+                             const float& vy) {
       auto center_x{bbox.x + bbox.width / 2};
       auto center_y{bbox.y + bbox.height / 2};
       auto area{bbox.area()};
@@ -451,8 +435,7 @@ private:
     //! Convert bounding box in the center form
     //! [center_x, center_y, scale, ratio] and returns it in the form of
     //! [x, y, width, height].
-    static BBox x_to_bbox(const cv::Mat& state)
-    {
+    static BBox x_to_bbox(const cv::Mat& state) {
       auto center_x{state.at<float>(0, 0)};
       auto center_y{state.at<float>(1, 0)};
       auto area{state.at<float>(2, 0)};
@@ -464,31 +447,26 @@ private:
       auto y{(center_y - height / 2)};
 
       // BBox in image space.
-      if (x < 0 && center_x > 0)
-        x = 0;
-      if (y < 0 && center_y > 0)
-        y = 0;
+      if (x < 0 && center_x > 0) x = 0;
+      if (y < 0 && center_y > 0) y = 0;
       return BBox(x, y, width, height);
     }
-  }; // class FlowBoxTracker
+  };  // class FlowBoxTracker
 
-  void associate_detections_to_trackers(
-      const std::vector<BBox >&,
-      std::vector<std::size_t>&);
+  void associate_detections_to_trackers(const std::vector<BBox>&,
+                                        std::vector<std::size_t>&);
 
-  std::vector<cv::Point2f> calculate_feature_points(
-      const BBox& bbox,
-      const cv::Mat& frame_gray);
+  std::vector<cv::Point2f> calculate_feature_points(const BBox& bbox,
+                                                    const cv::Mat& frame_gray);
 
   std::unordered_map<std::size_t, std::vector<struct Velocity_>>
-          calculate_velocities_from_flow(
-          const cv::Mat& next_img,
-          const std::size_t& n,
-          const std::vector<std::pair<std::size_t,
-          std::vector<cv::Point2f>>>& ids_with_features);
+  calculate_velocities_from_flow(
+      const cv::Mat& next_img, const std::size_t& n,
+      const std::vector<std::pair<std::size_t, std::vector<cv::Point2f>>>&
+          ids_with_features);
 
-  bool check_and_resize_state_bbox(
-      BBox& bbox_candidate, const BBox& bbox_state) const;
+  bool check_and_resize_state_bbox(BBox& bbox_candidate,
+                                   const BBox& bbox_state) const;
 
   static float iou(const BBox&, const BBox&);
 
@@ -503,21 +481,20 @@ private:
 
   // Flow stuff.
   cv::Mat prev_frame_gray_;
-  cv::Ptr<cv::FastFeatureDetector>fast_;
-  cv::Ptr<cv::ORB>orb_;
+  cv::Ptr<cv::FastFeatureDetector> fast_;
+  cv::Ptr<cv::ORB> orb_;
   cv::Ptr<cv::optflow::RLOFOpticalFlowParameter> rlof_params_;
 
   // Helper stuff.
   float img_width_{};
   float img_height_{};
   BBox image_space_;
-}; // class SORTOF
+};  // class SORTOF
 
 //! Assign detections to tracked boxes.
 void SORTOF::associate_detections_to_trackers(
-        const std::vector<BBox >& detections,
-        std::vector<std::size_t>& unmatched_dets)
-{
+    const std::vector<BBox>& detections,
+    std::vector<std::size_t>& unmatched_dets) {
   if (trackers_.empty()) {
     for (std::size_t i{0}; i < detections.size(); ++i)
       unmatched_dets.push_back(i);
@@ -525,17 +502,16 @@ void SORTOF::associate_detections_to_trackers(
   }
 
   // Create iou cost matrix.
-  std::size_t rows {detections.size()};
+  std::size_t rows{detections.size()};
   std::size_t col;
-  std::size_t cols {trackers_.size()};
+  std::size_t cols{trackers_.size()};
   dlib::matrix<std::size_t> iou_cost(rows, cols);
 
   for (std::size_t row{0}; row < rows; ++row) {
     col = 0;
     for (auto& trk : trackers_) {
-      iou_cost(row, col) =
-          std::size_t(precision_ * iou(detections[row],
-              trk.second->get_state()));
+      iou_cost(row, col) = std::size_t(
+          precision_ * iou(detections[row], trk.second->get_state()));
       ++col;
     }
   }
@@ -550,33 +526,27 @@ void SORTOF::associate_detections_to_trackers(
 
   // Pad iou cost matrix if not square.
   if (iou_cost.nr() > iou_cost.nc())
-    iou_cost =
-        dlib::join_rows(iou_cost,
-            dlib::zeros_matrix<std::size_t>(
-                1, iou_cost.nr() - iou_cost.nc()));
+    iou_cost = dlib::join_rows(iou_cost, dlib::zeros_matrix<std::size_t>(
+                                             1, iou_cost.nr() - iou_cost.nc()));
   else if (iou_cost.nc() > iou_cost.nr())
-    iou_cost =
-        dlib::join_cols(iou_cost,
-            dlib::zeros_matrix<std::size_t>(
-                iou_cost.nc() - iou_cost.nr(), 1));
+    iou_cost = dlib::join_cols(iou_cost, dlib::zeros_matrix<std::size_t>(
+                                             iou_cost.nc() - iou_cost.nr(), 1));
 
   // Solve linear assignment problem.
   std::vector<long> lap = dlib::max_cost_assignment(iou_cost);
 
 #if !defined(NDEBUG)
-  std::cout << "iou_cost matrix: "<< std::endl;
-    std::cout << iou_cost << std::endl;
-    std::cout << "assignment: "<< std::endl;
-    for (auto & l: lap)
-      std::cout << l <<' ' ;
-    std::cout << std::endl;
+  std::cout << "iou_cost matrix: " << std::endl;
+  std::cout << iou_cost << std::endl;
+  std::cout << "assignment: " << std::endl;
+  for (auto& l : lap) std::cout << l << ' ';
+  std::cout << std::endl;
 #endif
 
   // Filter out matched with low iou and assign detections to tracks.
   for (std::size_t d{0}; d < lap.size(); ++d) {
     if (iou_cost(d, lap[d]) < iou_threshold_) {
-      if (d < detections.size())
-        unmatched_dets.push_back(d);
+      if (d < detections.size()) unmatched_dets.push_back(d);
     } else {
       size_t track_id = idx_to_trkid[lap[d]];
       trackers_.at(track_id)->bbox = detections.at(d);
@@ -587,18 +557,15 @@ void SORTOF::associate_detections_to_trackers(
 
 //! Retrieve feature points from cv::ORB or cv::FAST in the given bounding box.
 std::vector<cv::Point2f> SORTOF::calculate_feature_points(
-        const BBox& bbox,
-        const cv::Mat& frame_gray)
-{
+    const BBox& bbox, const cv::Mat& frame_gray) {
   cv::Mat roi = frame_gray(bbox);
   std::vector<cv::KeyPoint> keypoints;
 
-  bool try_fast {false};
+  bool try_fast{false};
 
   try {
     orb_->detect(roi, keypoints);
-  }
-  catch (cv::Exception& e_orb){
+  } catch (cv::Exception& e_orb) {
     try_fast = true;
   }
 
@@ -609,8 +576,7 @@ std::vector<cv::Point2f> SORTOF::calculate_feature_points(
   if (try_fast) {
     try {
       fast_->detect(roi, keypoints);
-    }
-    catch (cv::Exception& e_fast) {
+    } catch (cv::Exception& e_fast) {
       return std::vector<cv::Point2f>();
     }
   }
@@ -631,12 +597,10 @@ std::vector<cv::Point2f> SORTOF::calculate_feature_points(
 
 //! Calculate velocities for a given set of feature points with optical flow.
 std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
-        SORTOF::calculate_velocities_from_flow(
-        const cv::Mat& next_img,
-        const std::size_t& n,
-        const std::vector<std::pair<std::size_t,
-        std::vector<cv::Point2f>>>& ids_with_features)
-{
+SORTOF::calculate_velocities_from_flow(
+    const cv::Mat& next_img, const std::size_t& n,
+    const std::vector<std::pair<std::size_t, std::vector<cv::Point2f>>>&
+        ids_with_features) {
   std::vector<cv::Point2f> p0;
   p0.reserve(n);
   std::vector<std::size_t> ids;
@@ -646,15 +610,15 @@ std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
   // array of the same size.
   for (const auto& trk : ids_with_features) {
     if (trk.second.empty())
-      continue; // No feature points for this track id were found.
+      continue;  // No feature points for this track id were found.
     for (const auto& pnts : trk.second) {
       p0.push_back(pnts);
       ids.push_back(trk.first);
     }
   }
 
-  std::unordered_map<std::size_t,
-  std::vector<struct SORTOF::Velocity_>> trackId_and_velocities{};
+  std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
+      trackId_and_velocities{};
 
   // It may be possible that no features were found at all.
   if (p0.empty()) return trackId_and_velocities;
@@ -666,20 +630,14 @@ std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
   std::vector<float> err;
   err.reserve(n);
 
-  cv::optflow::calcOpticalFlowSparseRLOF(
-      next_img,
-      prev_frame_gray_,
-      p0,
-      p1,
-      status,
-      err,
-      rlof_params_);
+  cv::optflow::calcOpticalFlowSparseRLOF(next_img, prev_frame_gray_, p0, p1,
+                                         status, err, rlof_params_);
 
   // Update points and ids for the ones optical flow was found.
   std::vector<std::size_t> valid_ids;
   std::vector<cv::Point2f> valid_p0;
   std::vector<cv::Point2f> valid_p1;
-  for (std::size_t i =0; i < p0.size(); i++) {
+  for (std::size_t i = 0; i < p0.size(); i++) {
     if (status[i] == 1) {
       valid_p0.push_back(p0[i]);
       valid_p1.push_back(p1[i]);
@@ -689,9 +647,9 @@ std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
 
   // In case no flow at all was found we can skip here.
   if (!valid_ids.empty()) {
-    for (std::size_t i {0}; i < valid_ids.size(); ++i) {
+    for (std::size_t i{0}; i < valid_ids.size(); ++i) {
       // Calculate velocity for the point.
-      struct SORTOF::Velocity_ velocity{};
+      struct SORTOF::Velocity_ velocity {};
       velocity.vx = p0[i].x - p1[i].x;
       velocity.vy = p0[i].y - p1[i].y;
       auto it = trackId_and_velocities.find(valid_ids[i]);
@@ -713,11 +671,8 @@ std::unordered_map<std::size_t, std::vector<struct SORTOF::Velocity_>>
 //! frame. If not, resize it so it will be in image space. If the resized
 //! bounding box is too small to get a matching detection within the given iou
 //! threshold, the track is going to be deleted.
-bool SORTOF::check_and_resize_state_bbox(
-    BBox& bbox_candidate,
-    const BBox& bbox_state
-) const
-{
+bool SORTOF::check_and_resize_state_bbox(BBox& bbox_candidate,
+                                         const BBox& bbox_state) const {
   // Check if bbox is still in images space.
   if ((bbox_candidate & SORTOF::image_space_) == bbox_candidate) return true;
 
@@ -731,15 +686,13 @@ bool SORTOF::check_and_resize_state_bbox(
     bbox_candidate.height = SORTOF::img_height_ - bbox_candidate.y;
 
   // Get iou of resized bbox and states bbox.
-  auto iou {bbox_candidate.area() / bbox_state.area()};
-  if (iou * SORTOF::precision_ < SORTOF::iou_threshold_)
-    return false;
+  auto iou{bbox_candidate.area() / bbox_state.area()};
+  if (iou * SORTOF::precision_ < SORTOF::iou_threshold_) return false;
   return true;
 }
 
 //! Compute intersection-over-union between two bounding boxes.
-float SORTOF::iou(const BBox& det, const BBox& trk)
-{
+float SORTOF::iou(const BBox& det, const BBox& trk) {
   auto xx1{std::max(det.tl().x, trk.tl().x)};
   auto yy1{std::max(det.tl().y, trk.tl().y)};
   auto xx2{std::min(det.br().x, trk.br().x)};
@@ -750,5 +703,5 @@ float SORTOF::iou(const BBox& det, const BBox& trk)
   float union_area{det.area() + trk.area() - intersection};
   return intersection / union_area;
 }
-} // namespace sort_of
+}  // namespace sort_of
 #endif
