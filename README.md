@@ -42,7 +42,7 @@ The following external libraries are needed:
   flow.
 - [dlib](http://www.dlib.net) for the linear assignment problem.
 
-If you are on an ArchLinux based system like me, install opencv from the
+If you are on an ArchLinux based system like me, install OpenCV from the
 official repository:
 ```
 $ sudo pacman -S opencv glu glew hdf5 vtk
@@ -59,8 +59,8 @@ $ sudo apt-get install libopencv-contrib-dev libdlib-dev
 I use cmake for the build process.
 
 ```
-$ git clone https://github.com/tylernewnoise/SORT_with_Optical_Flow.git
-$ cd SORT_with_Optical_Flow
+$ git clone https://github.com/tylernewnoise/SORT_OF
+$ cd SORT_OF
 $ mkdir build && cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 $ make
@@ -70,7 +70,7 @@ $ make
 
 Put your data in this folder structure:
 ```
-SORT_with_Optical_Flow
+SORT_OF
   └─ data
     └─ Sequence
       ├─ det
