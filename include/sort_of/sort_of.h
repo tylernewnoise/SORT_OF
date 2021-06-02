@@ -120,37 +120,50 @@ class SORTOF {
   //! Measurement function if bbox and velocity is provided. Default.
   static const cv::Mat& H_() {
     static const cv::Mat H_ = (cv::Mat_<float>(6, 7) <<
-             1, 0, 0, 0, 0, 0, 0,
-             0, 1, 0, 0, 0, 0, 0,
-             0, 0, 1, 0, 0, 0, 0,
-             0, 0, 0, 1, 0, 0, 0,
-             0, 0, 0, 0, 1, 0, 0,
-             0, 0, 0, 0, 0, 1, 0);
+        1, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0, 1, 0);
     return H_;
   }
 
   //! Measurement function if only a bbox provided.
   static const cv::Mat& H_bbox_only_() {
     static const cv::Mat H_bbox_only = (cv::Mat_<float>(6, 7) <<
-            1, 0, 0, 0, 0, 0, 0,
-            0, 1, 0, 0, 0, 0, 0,
-            0, 0, 1, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0);
+        1, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0);
     return H_bbox_only;
   }
 
   //! Measurement function if only velocity is provided.
   static const cv::Mat& H_velocity_only_() {
     static const cv::Mat H_velocity_only = (cv::Mat_<float>(6, 7) <<
-            0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0,
-            0, 0, 0, 0, 0, 1, 0);
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0, 1, 0);
     return H_velocity_only;
+  }
+
+  //! Kalman filter transition matrix.
+  static const cv::Mat& transition_matrix_() {
+    static const cv::Mat transition_matrix = (cv::Mat_<float>(7, 7) <<
+        1, 0, 0, 0, 1, 0, 0,
+        0, 1, 0, 0, 0, 1, 0,
+        0, 0, 1, 0, 0, 0, 1,
+        0, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 1);
+    return transition_matrix;
   }
   // clang-format on
 
@@ -219,20 +232,12 @@ class SORTOF::FlowBoxTracker {
         got_bbox{false},
         hits{0},
         time_since_update{0} {
-    // clang-format off
     // State transition function F.
-    kf_.transitionMatrix = (cv::Mat_<float>(7, 7) <<
-        1, 0, 0, 0, 1, 0, 0,
-        0, 1, 0, 0, 0, 1, 0,
-        0, 0, 1, 0, 0, 0, 1,
-        0, 0, 0, 1, 0, 0, 0,
-        0, 0, 0, 0, 1, 0, 0,
-        0, 0, 0, 0, 0, 1, 0,
-        0, 0, 0, 0, 0, 0, 1);
-
+    kf_.transitionMatrix = SORTOF::transition_matrix_();
     // Measurement function H.
     kf_.measurementMatrix = SORTOF::H_();
 
+    // clang-format off
     // Measurement noise R.
     kf_.measurementNoiseCov = (cv::Mat_<float>(6, 6) <<
         1, 0, 0, 0, 0, 0,
