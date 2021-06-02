@@ -46,6 +46,8 @@
 
 #define BBox cv::Rect_<float>
 
+namespace sort_of {
+
 struct DetectionsAndImg {
   std::vector<BBox> detections;
   cv::Mat img;
@@ -56,7 +58,6 @@ struct Track {
   std::size_t id{};
 };
 
-namespace sort_of {
 /**
  * This class implements a simple multi target tracker. It holds an
  * unordered map with the track ids as the key and a KalmanBoxTracker object as
@@ -78,18 +79,22 @@ class SORTOF {
          const int max_corners, const unsigned int n_init)
       : frame_{0},
         id_{0},
+        iou_threshold_{iou_threshold * precision_},
         max_age_{max_age},
         n_init_{n_init},
-        trackers_{std::unordered_map<std::size_t,
-                                     std::unique_ptr<FlowBoxTracker>>()} {
-    iou_threshold_ = iou_threshold * precision_;
+        trackers_{
+            std::unordered_map<std::size_t, std::unique_ptr<FlowBoxTracker>>()},
+        fast_{cv::FastFeatureDetector::create()},
+        orb_{cv::ORB::create(max_corners)},
+        rlof_params_{cv::optflow::RLOFOpticalFlowParameter::create()} {
+    // iou_threshold_ = iou_threshold * precision_;
 
-    fast_ = cv::FastFeatureDetector::create();
+    // fast_ = cv::FastFeatureDetector::create();
     fast_->setThreshold(50);
     fast_->setNonmaxSuppression(true);
     fast_->setType(cv::FastFeatureDetector::TYPE_7_12);
 
-    orb_ = cv::ORB::create(max_corners);
+    // orb_ = cv::ORB::create(max_corners);
     orb_->setScaleFactor(1.2);
     orb_->setEdgeThreshold(9);
     orb_->setNLevels(8);
@@ -97,7 +102,7 @@ class SORTOF {
     orb_->setScoreType(cv::ORB::HARRIS_SCORE);
     orb_->setWTA_K(1);
 
-    rlof_params_ = cv::optflow::RLOFOpticalFlowParameter::create();
+    // rlof_params_ = cv::optflow::RLOFOpticalFlowParameter::create();
     rlof_params_->useIlluminationModel = false;
     rlof_params_->useInitialFlow = false;
     rlof_params_->maxIteration = 5;
@@ -176,11 +181,11 @@ class SORTOF {
   // Original SORT stuff.
   std::size_t frame_;
   std::size_t id_;
+  double iou_threshold_;
   unsigned int max_age_;
   unsigned int n_init_;
   static constexpr double precision_ = 10000;
   std::unordered_map<std::size_t, std::unique_ptr<FlowBoxTracker>> trackers_;
-  double iou_threshold_;
 
   // Flow stuff.
   cv::Mat prev_frame_gray_;
@@ -209,11 +214,15 @@ class SORTOF::FlowBoxTracker {
    *                     format.
    */
   explicit FlowBoxTracker(const BBox& initial_bbox)
-      : hits{0}, time_since_update{0} {
+      : bbox{initial_bbox},
+        found_flow{false},
+        got_bbox{false},
+        hits{0},
+        time_since_update{0} {
     // clang-format off
     // State transition function F.
     kf_.transitionMatrix = (cv::Mat_<float>(7, 7) <<
-                                                  1, 0, 0, 0, 1, 0, 0,
+        1, 0, 0, 0, 1, 0, 0,
         0, 1, 0, 0, 0, 1, 0,
         0, 0, 1, 0, 0, 0, 1,
         0, 0, 0, 1, 0, 0, 0,
@@ -226,7 +235,7 @@ class SORTOF::FlowBoxTracker {
 
     // Measurement noise R.
     kf_.measurementNoiseCov = (cv::Mat_<float>(6, 6) <<
-                                                     1, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0,
         0, 1, 0, 0, 0, 0,
         0, 0, 10, 0, 0, 0,
         0, 0, 0, 10, 0, 0,
@@ -235,7 +244,7 @@ class SORTOF::FlowBoxTracker {
 
     // Process noise Q.
     kf_.processNoiseCov = (cv::Mat_<float>(7, 7) <<
-                                                 1, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0,
         0, 1, 0, 0, 0, 0, 0,
         0, 0, 1, 0, 0, 0, 0,
         0, 0, 0, 1, 0, 0, 0,
@@ -246,7 +255,7 @@ class SORTOF::FlowBoxTracker {
     // Initial Conditions, P.
     // Give high uncertainty to the unobservable initial velocities.
     kf_.errorCovPost = (cv::Mat_<float>(7, 7) <<
-                                              10, 0, 0, 0, 0, 0, 0,
+        10, 0, 0, 0, 0, 0, 0,
         0, 10, 0, 0, 0, 0, 0,
         0, 0, 10, 0, 0, 0, 0,
         0, 0, 0, 10, 0, 0, 0,
@@ -260,9 +269,6 @@ class SORTOF::FlowBoxTracker {
     kf_.statePost.at<float>(1, 0) = initial_bbox.y + initial_bbox.height / 2;
     kf_.statePost.at<float>(2, 0) = initial_bbox.area();
     kf_.statePost.at<float>(3, 0) = initial_bbox.width / initial_bbox.height;
-    bbox = initial_bbox;
-    found_flow = false;
-    got_bbox = false;
   }
 
   ~FlowBoxTracker() = default;

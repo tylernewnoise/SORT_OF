@@ -29,7 +29,8 @@ void demoSort(const std::string&, const bool&, const bool&);
 std::map<std::size_t, std::vector<BBox>> readDetections(const std::string&);
 std::vector<cv::Mat> readImages(const std::string&);
 void visualize(const std::vector<cv::Mat>&, const std::size_t&,
-               const std::vector<struct Track>&, const std::vector<BBox>&);
+               const std::vector<struct sort_of::Track>&,
+               const std::vector<BBox>&);
 
 // Ugly globals for time measurement.
 std::chrono::duration<double> timespan{};
@@ -134,7 +135,7 @@ void demoSort(const std::string& seqName, const bool& display,
   const double iou_threshold{0.3};
   sort_of::SORTOF of_sort_tracker =
       SORTOF(iou_threshold, max_age, max_corners, n_init);
-  std::vector<struct Track> tracks;
+  std::vector<struct sort_of::Track> tracks;
 
   // Iterate over frames and start tracking.
   std::cout << "Start tracking... " << std::flush;
@@ -150,7 +151,7 @@ void demoSort(const std::string& seqName, const bool& display,
       for (const auto& i : it->second) std::cout << i << ' ';
       std::cout << std::endl;
 #endif
-      struct DetectionsAndImg dets_and_img;
+      struct sort_of::DetectionsAndImg dets_and_img;
       dets_and_img.detections = it->second;
       dets_and_img.img = images.at(frame - 1);
 
@@ -169,7 +170,7 @@ void demoSort(const std::string& seqName, const bool& display,
       std::cout << "no detections to update" << std::endl;
 #endif
       auto t1 = std::chrono::high_resolution_clock::now();
-      struct DetectionsAndImg dets_and_img;
+      struct sort_of::DetectionsAndImg dets_and_img;
       dets_and_img.img = images.at(frame - 1);
 
       // Even if there are no detections we have to update the tracker.
@@ -288,7 +289,7 @@ std::vector<cv::Mat> readImages(const std::string& seqName) {
  * @param detections List cv::rect_ with detections.
  */
 void visualize(const std::vector<cv::Mat>& images, const std::size_t& frame,
-               const std::vector<struct Track>& tracks,
+               const std::vector<struct sort_of::Track>& tracks,
                const std::vector<BBox>& detections) {
   // Read image file
   cv::Mat img = images.at(frame - 1);
