@@ -87,14 +87,10 @@ class SORTOF {
         fast_{cv::FastFeatureDetector::create()},
         orb_{cv::ORB::create(max_corners)},
         rlof_params_{cv::optflow::RLOFOpticalFlowParameter::create()} {
-    // iou_threshold_ = iou_threshold * precision_;
-
-    // fast_ = cv::FastFeatureDetector::create();
     fast_->setThreshold(50);
     fast_->setNonmaxSuppression(true);
     fast_->setType(cv::FastFeatureDetector::TYPE_7_12);
 
-    // orb_ = cv::ORB::create(max_corners);
     orb_->setScaleFactor(1.2);
     orb_->setEdgeThreshold(9);
     orb_->setNLevels(8);
@@ -102,7 +98,6 @@ class SORTOF {
     orb_->setScoreType(cv::ORB::HARRIS_SCORE);
     orb_->setWTA_K(1);
 
-    // rlof_params_ = cv::optflow::RLOFOpticalFlowParameter::create();
     rlof_params_->useIlluminationModel = false;
     rlof_params_->useInitialFlow = false;
     rlof_params_->maxIteration = 5;
