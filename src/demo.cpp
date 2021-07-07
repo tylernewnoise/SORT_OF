@@ -19,7 +19,7 @@ cv::Vec3b createUniqueColorHsv(const UInt& id) {
   static constexpr double HUE_STEP{0.41};
   const double hue{std::fmod(id * HUE_STEP, 1.0)};
   const double value{1.0 - (static_cast<int>(id * HUE_STEP) % 4) / 5.0};
-  const double saturation{1.0};
+  static constexpr double saturation{1.0};
   return cv::Vec3b(180 * hue, 255 * value, 255 * saturation);
 }
 }  // namespace
@@ -235,8 +235,8 @@ std::map<std::size_t, std::vector<BBox>> readDetections(
     if (detection.size() < 10) continue;
 
     // Look up the detection...
-    std::size_t frame_nr = detection[0];
-    auto it = detections.find(frame_nr);
+    auto frame_nr = detection[0];
+    auto it = detections.find(static_cast<std::size_t>(frame_nr));
     if (it != detections.end()) {
       auto x = detection[2];
       auto y = detection[3];
@@ -254,7 +254,7 @@ std::map<std::size_t, std::vector<BBox>> readDetections(
       std::vector<BBox> frame_detections;
 
       frame_detections.push_back(bbox);
-      detections[frame_nr] = frame_detections;
+      detections[static_cast<std::size_t>(frame_nr)] = frame_detections;
     }
   }
 
@@ -300,26 +300,26 @@ void visualize(const std::vector<cv::Mat>& images, const std::size_t& frame,
     cv::Mat bgr;
     cv::Mat hsv(1, 1, CV_8UC3, createUniqueColorHsv(t.id));
     cv::cvtColor(hsv, bgr, cv::COLOR_HSV2BGR);
-    const cv::Point top_left(t.bbox.x, t.bbox.y);
-    const cv::Point bottom_right =
-        top_left + cv::Point(t.bbox.width, t.bbox.height);
+    const cv::Point_<float> top_left(t.bbox.x, t.bbox.y);
+    const cv::Point_<float> bottom_right =
+        top_left + cv::Point_<float>(t.bbox.width, t.bbox.height);
 
     cv::rectangle(img, top_left, bottom_right,
                   cv::Scalar(bgr.data[0], bgr.data[1], bgr.data[2]), THICKNESS);
 
     const std::string label = std::to_string(t.id);
     int baseline;
-    cv::Size text_size =
+    cv::Size_<float> text_size =
         cv::getTextSize(label, cv::FONT_HERSHEY_PLAIN, 1.0, 2.0, &baseline);
 
     // Paint a neat box with the tracking id.
     cv::rectangle(img, top_left,
-                  cv::Point(top_left.x + 10 + text_size.width,
-                            top_left.y + 10 + text_size.height),
+                  cv::Point_<float>(top_left.x + 10 + text_size.width,
+                                    top_left.y + 10 + text_size.height),
                   cv::Scalar(bgr.data[0], bgr.data[1], bgr.data[2]), -1);
 
-    const cv::Point text_position(top_left.x + 5,
-                                  top_left.y + 5 + text_size.height);
+    const cv::Point_<float> text_position(top_left.x + 5,
+                                          top_left.y + 5 + text_size.height);
     cv::putText(img, label, text_position, cv::FONT_HERSHEY_PLAIN, 1.0,
                 cv::Scalar(255, 255, 255), 2.0);
   }
